@@ -27,6 +27,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 # Checking for optional and required packages
 
 find_package(ASDP_BSP REQUIRED)
+find_package(ASDP_Core_API REQUIRED)
 find_package(Doxygen)
 find_package(OpenMP)
 if(OPENMP_FOUND)
@@ -92,7 +93,7 @@ if(BUILD_TESTS)
     add_executable (${APP} tests_cpp/${BASE}.cpp)
     set_target_properties(${APP} PROPERTIES FOLDER tests/C++)
     target_link_libraries(${APP} PRIVATE
-      ASDP_BSP::ASDP_BSP
+      ASDP_BSP::ASDP_BSP ASDP_Core_API::ASDP_Core_API
     )
     install(TARGETS ${APP} EXPORT ${PROJECT_NAME}
       RUNTIME DESTINATION bin
