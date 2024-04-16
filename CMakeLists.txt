@@ -65,18 +65,40 @@ add_definitions(-DCONFIG_FILE_PATH="${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BIND
 #-----------------------------------------------------------------------------
 # Build the helper static libraries.
 
+set (Core_Module_INCLUDES
+	Core_Module.h
+)
+set (Core_Module_SOURCES
+	Core_Module.cpp
+)
+add_library(Core_Module STATIC ${Core_Module_SOURCES} ${Core_Module_HEADERS})
+target_include_directories(Core_Module PUBLIC
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:include>
+)
+target_link_libraries(Core_Module PUBLIC ASDP_Core_API::ASDP_Core_API ASDP_BSP::ASDP_BSP)
 
 #-----------------------------------------------------------------------------
 # Build the Module.
 
-# include(GNUInstallDirs)
-# install(TARGETS ASDP_BSP EXPORT ${PROJECT_NAME}
-#   RUNTIME DESTINATION bin COMPONENT lib
-#   LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT lib
-#   ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT lib
-#   INCLUDES DESTINATION include
-#   PUBLIC_HEADER DESTINATION include
-# )
+set (ASDP_Core_Module_HEADERS
+)
+
+set (ASDP_Core_Module_SOURCES
+	ASDP_Core_Module.cpp
+)
+
+add_executable(ASDP_Core_Module ${ASDP_Core_Module_SOURCES} ${ASDP_Core_Module_HEADERS})
+target_link_libraries(ASDP_Core_Module Core_Module)
+
+include(GNUInstallDirs)
+install(TARGETS ASDP_Core_Module EXPORT ${PROJECT_NAME}
+  RUNTIME DESTINATION bin COMPONENT bin
+  LIBRARY DESTINATION lib${LIB_SUFFIX} COMPONENT lib
+  ARCHIVE DESTINATION lib${LIB_SUFFIX} COMPONENT lib
+  INCLUDES DESTINATION include
+  PUBLIC_HEADER DESTINATION include
+)
 
 #-----------------------------------------------------------------------------
 # Build tests if we've been asked to.

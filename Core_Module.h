@@ -1,0 +1,75 @@
+/*
+ * Copyright (C) 2024: Arizona Board of Regents on Behalf of the University of Arizona
+ */
+
+#pragma once
+#include <ASDP_Core_API.h>
+#include <BspInclude.hpp>
+#include <map>
+#include <mutex>
+#include <list>
+
+namespace asdp {
+
+/// @brief Per-serial-number server module that advertises on a specific port.
+class Core_Module_Server : public CoreServerBase {
+public:
+
+  /// @brief Constructor
+  /// @param NicName The name of the network interface to listen on for incoming connections.
+  /// @param sendPort The port to broadcast notifications on.
+  /// @param listenPort The port to listen on for incoming connections.
+  /// @param maxPayloadSize The maximum size of a payload that can be sent or received.
+  /// @param verbosity The verbosity level of the server, 0 for no verbosity, higher for more verbosity.
+  Core_Module_Server(const std::string &NicName, uint16_t sendPort = 10102, uint16_t listenPort = 10101,
+    uint32_t maxPayloadSize = 9000 - 28, int verbosity = 0);
+
+  /// @brief Get the current status of the object.
+  Status GetCurrentStatus() const;
+
+
+protected:
+  //=============================================================================
+  // State information for the server module.
+  uint16_t m_numCameras; ///< The number of cameras that are connected to the server.
+  uint16_t m_numInternalTriggers; ///< The number of internal triggers that are connected to the server.
+  uint16_t m_numExternalTriggers; ///< The number of external triggers that are connected to the server.
+  uint16_t m_numTempsPerCamera; ///< The number of temperature sensors per camera.
+  uint16_t m_numSystemTemps; ///< The number of system temperature sensors.
+  std::vector<Bsp::Pose::pose_report_s> m_poseDeviceConfigurations; ///< The configurations for the pose devices.
+
+  //=============================================================================
+  // Override methods to implement the commands as needed.
+
+  /// @brief Handle operations that must be done every loop, like checking if our thread should stop.
+  void doEveryLoop() override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doReset(const CommandPacketReset&, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doConfigureTrigger(const CommandPacketConfigureTrigger&, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doSoftwareTrigger(const CommandPacketSoftwareTrigger&, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doStreamSubregion(const CommandPacketStreamSubregion&, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doCancelSubregion(const CommandPacketCancelSubregion&, ClientState& client) override;
+
+  /// @todo Override the other methods as needed.
+};
+
+} // namespace asdp

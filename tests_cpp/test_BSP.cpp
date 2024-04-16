@@ -11,8 +11,9 @@ int main(int argc, char** argv)
 
   // Put all of this into a block so that objects will be deleted when they go out of scope.
   {
-    // Get and print the BSP version
+    // Get and print the BSP version and serial number.
     std::cout << "BSP version: " << Bsp::GetVersion() << std::endl;
+    std::cout << "BSP serial number: " << Bsp::GetSerialNumber() << std::endl;
 
     // Get and print the number of various types of BSP objects.
     std::cout << "Number of internal triggers: "
