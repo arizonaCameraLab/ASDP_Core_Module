@@ -180,7 +180,17 @@ void Core_Module_Server::sendInternalErrorMessage(OpCode opCode, ClientState& cl
 
 void Core_Module_Server::doReset(const CommandPacketReset& command, ClientState& client)
 {
-  m_error = "@todo implement doReset";
+  // Reconfigure all of our triggers to be disabled.
+  for (size_t i = 1; i <= GetNumberOfInternalTriggers(); i++) {
+    ConfigureTrigger(i, 0, 0, 0, 1);
+  }
+
+  // Destroy all of our clients.
+  while (!m_clients.empty()) {
+    m_clients.pop_back();
+  }
+
+  m_error = "";
 }
 
 void Core_Module_Server::doConfigureTrigger(const CommandPacketConfigureTrigger& command, ClientState& client)
@@ -234,10 +244,62 @@ void Core_Module_Server::doSoftwareTrigger(const CommandPacketSoftwareTrigger& c
 
 void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& command, ClientState& client)
 {
-  m_error = "@todo implement doStreamSubregion";
+  // Read the enpoint and subregion descriptions from the command packet.
+  StreamEndpoint endpoint;
+  Status status = command.GetEndpoint(endpoint);
+  if (status != OKAY) {
+    sendInternalErrorMessage(STREAM_SUBREGION, client);
+    m_error = "Error getting endpoint: " + ErrorMessage(status);
+    return;
+  }
+  SubregionDescription subregion;
+  status = command.GetRegionDescription(subregion);
+  if (status != OKAY) {
+    sendInternalErrorMessage(STREAM_SUBREGION, client);
+    m_error = "Error getting subregion: " + ErrorMessage(status);
+    return;
+  }
+
+  // Request the streaming
+  roi_s roi;
+  roi.start_x = subregion.left;
+  roi.start_y = subregion.top;
+  roi.end_x = subregion.right;
+  roi.end_y = subregion.bottom;
+  if (!EnableStream(subregion.cameraID, { endpoint.IP, endpoint.port }, roi, subregion.skipFrames,
+      subregion.startTimeSeconds, subregion.startTimeMicroseconds)) {
+    sendInternalErrorMessage(STREAM_SUBREGION, client);
+    m_error = "Error enabling subregion stream";
+    return;
+  }
+
+  m_error = "";
 }
 
 void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& command, ClientState& client)
 {
-  m_error = "@todo implement doCancelSubregion";
+  // Read the camera index and endpoint from the command packet.
+  uint32_t cameraID;
+  Status status = command.GetCamera(cameraID);
+  if (status != OKAY) {
+    sendInternalErrorMessage(CANCEL_SUBREGION, client);
+    m_error = "Error getting cameraID: " + ErrorMessage(status);
+    return;
+  }
+  StreamEndpoint endpoint;
+  status = command.GetEndpoint(endpoint);
+  if (status != OKAY) {
+    sendInternalErrorMessage(CANCEL_SUBREGION, client);
+    m_error = "Error getting endpoint: " + ErrorMessage(status);
+    return;
+  }
+
+  // Request the cancelation of the streaming
+  if (!DisableStream(cameraID, { endpoint.IP, endpoint.port })) {
+    sendInternalErrorMessage(CANCEL_SUBREGION, client);
+    m_error = "Error disabling subregion stream";
+    return;
+  }
+
+  m_error = "";
 }
