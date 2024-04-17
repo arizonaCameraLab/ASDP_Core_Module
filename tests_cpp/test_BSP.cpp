@@ -38,6 +38,16 @@ int main(int argc, char** argv)
 
     uint16_t NumCameras = Bsp::Camera::GetNumberOfCameras();
     std::cout << "Number of cameras: " << NumCameras << std::endl;
+    std::vector<std::string> fields = { "type", "width", "height", "minTriggerPeriod", "maxTriggerPeriod" };
+    for (size_t c = 1; c <= NumCameras; c++) {
+      std::map<std::string, std::string> status = Bsp::Camera::GetStatus(c);
+      for (auto f : fields) {
+        if (status.find(f) == status.end()) {
+          std::cerr << "Camera " << c << " field " << f << " is unspecified" << std::endl;
+          return 1;
+        }
+      }
+    }
 
     // Read from all of the temperature sensors and make sure that they are reporting.
     std::vector<uint32_t> SystemTemperatureSensors(NumSystemTemps, 0);
