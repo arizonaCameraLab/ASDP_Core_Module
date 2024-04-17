@@ -55,26 +55,32 @@ int main(int argc, char** argv)
         Usage(argv[0], 2);
     }
   }
-  if (realParams != 3) {
+  if (realParams != 1) {
     Usage(argv[0], 2);
   }
 
   // Open a Core Module, specifying the NIC to listen and broadcast on.
+  // Do this inside a block so that the module is destroyed when it goes out of scope.
   {
     if (verbosity > 0) {
       std::cout << "Opening Core module listening on " << NICName << std::endl;
     }
-    Core_Module_Server module(NICName);
-    if (module.GetConstructorStatus() != OKAY) {
-      std::cerr << "Failed to open module: " << ErrorMessage(module.GetConstructorStatus()) << std::endl;
+    Core_Module_Server server(NICName);
+    if (server.GetConstructorStatus() != OKAY) {
+      std::cerr << "Failed to open module: " << ErrorMessage(server.GetConstructorStatus()) << std::endl;
       return 3;
     }
-
+    std::string ret = server.run();
+    if (ret.size() > 0) {
+      std::cerr << "Server failed: " << ret << std::endl;
+      return 4;
+    }
     // Watch the module.  Print an error message if it fails.
     do {
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
-    } while (module.GetCurrentStatus() == OKAY);
-    std::cerr << "Module failed: " << ErrorMessage(module.GetCurrentStatus()) << std::endl;
+    } while (server.GetCurrentStatus() == OKAY);
+    std::cerr << "Module failed: " << ErrorMessage(server.GetCurrentStatus()) << std::endl;
+    return server.GetCurrentStatus();
   }
 
   return 0;

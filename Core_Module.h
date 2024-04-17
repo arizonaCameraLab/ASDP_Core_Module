@@ -30,13 +30,13 @@ public:
 
 protected:
   //=============================================================================
-  // State information for the server module.
+  // Additional state information for the server module.
   uint16_t m_numCameras; ///< The number of cameras that are connected to the server.
-  uint16_t m_numInternalTriggers; ///< The number of internal triggers that are connected to the server.
-  uint16_t m_numExternalTriggers; ///< The number of external triggers that are connected to the server.
-  uint16_t m_numTempsPerCamera; ///< The number of temperature sensors per camera.
-  uint16_t m_numSystemTemps; ///< The number of system temperature sensors.
   std::vector<Bsp::Pose::pose_report_s> m_poseDeviceConfigurations; ///< The configurations for the pose devices.
+
+  //=============================================================================
+  // Additional helper functions for the server module.
+  void sendInternalErrorMessage(OpCode opCode, ClientState& client);
 
   //=============================================================================
   // Override methods to implement the commands as needed.
