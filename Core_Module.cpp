@@ -61,6 +61,8 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
   // Configure all cameras to be triggered off of the first trigger.
   // Fill in the camera information.
   /// @todo Enable config-file-based setting of the camera trigger configuration.
+  bool haveNUCFlag = false;
+  bool haveOnCameraNUC = false;
   for (size_t c = 1; c <= m_numCameras; c++) {
     // Configure the camera for trigger 1
     if (!SetupCamera(c, 1)) {
@@ -88,9 +90,24 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
     if (camInfo.find("maxTriggerPeriod") != camInfo.end()) {
       ci.maxTriggerPeriod = atof(camInfo["maxTriggerPeriod"].c_str());
     }
+    if (camInfo.find("nucFlagAvailable") != camInfo.end()) {
+      haveNUCFlag = true;
+    }
+    if (camInfo.find("onCameraNUCAvailable") != camInfo.end()) {
+      haveOnCameraNUC = true;
+    }
 
     m_cameras.push_back(ci);
   }
+
+  // Add features discovered during the camera handling.
+  if (haveNUCFlag) {
+    m_features.push_back(NUC_FLAG_AVAILABLE);
+  }
+  if (haveOnCameraNUC) {
+    m_features.push_back(ON_CAMERA_NUC_AVAILABLE);
+  }
+
 }
 
 Status Core_Module_Server::GetCurrentStatus() const

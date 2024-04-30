@@ -28,6 +28,7 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 find_package(ASDP_BSP REQUIRED)
 find_package(ASDP_Core_API REQUIRED)
+find_package(Threads REQUIRED)
 find_package(Doxygen)
 find_package(OpenMP)
 if(OPENMP_FOUND)
