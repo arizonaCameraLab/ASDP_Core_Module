@@ -65,7 +65,7 @@ int main(int argc, char** argv)
     if (verbosity > 0) {
       std::cout << "Opening Core module listening on " << NICName << std::endl;
     }
-    Core_Module_Server server(NICName);
+    Core_Module_Server server(NICName, 10102, 10101, 9000-28, verbosity);
     if (server.GetConstructorStatus() != OKAY) {
       std::cerr << "Failed to open module: " << ErrorMessage(server.GetConstructorStatus()) << std::endl;
       return 3;

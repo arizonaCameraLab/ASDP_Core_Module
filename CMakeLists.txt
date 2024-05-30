@@ -66,7 +66,7 @@ add_definitions(-DCONFIG_FILE_PATH="${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BIND
 #-----------------------------------------------------------------------------
 # Build the helper static libraries.
 
-set (Core_Module_INCLUDES
+set (Core_Module_HEADERS
 	Core_Module.h
 )
 set (Core_Module_SOURCES

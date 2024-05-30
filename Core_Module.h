@@ -69,6 +69,17 @@ protected:
   /// @param client The client that the command is coming from.
   void doCancelSubregion(const CommandPacketCancelSubregion&, ClientState& client) override;
 
+  /// @brief Handle things that have to happen when a client is removed.
+  /// @details This enforces clean shutdown even if the client does not close all of the
+  /// existing streams.
+  void clientBeingRemoved(ClientState& client) override;
+
+  struct OngoingStreamInfo {
+    uint16_t cameraIndex;
+    Bsp::UdpInserter::endpoint_s endpoint;
+  };
+  std::map< ClientState *, std::list<OngoingStreamInfo> > m_ongoingStreams; ///< The streams that are currently ongoing.
+
   /// @todo Override the other methods as needed.
 };
 

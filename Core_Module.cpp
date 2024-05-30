@@ -290,6 +290,12 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
     return;
   }
 
+  // Keep track of ongoing streams
+  OngoingStreamInfo streamInfo;
+  streamInfo.cameraIndex = subregion.cameraID;
+  streamInfo.endpoint = { endpoint.IP, endpoint.port };
+  m_ongoingStreams[&client].push_back(streamInfo);
+
   m_error = "";
 }
 
@@ -318,5 +324,23 @@ void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& c
     return;
   }
 
+  // Remove this from the ongoing-streams list
+  Bsp::UdpInserter::endpoint_s endpointS = { endpoint.IP, endpoint.port };
+  m_ongoingStreams[&client].remove_if([cameraID, endpoint, &endpointS](const OngoingStreamInfo& info) {
+    return (info.cameraIndex == cameraID) && (endpointS == info.endpoint);
+  });
+
   m_error = "";
+}
+
+void Core_Module_Server::clientBeingRemoved(ClientState& client)
+{
+  // Remove any ongoing streams that this client was responsible for
+  auto streams = m_ongoingStreams.find(&client);
+  if (streams != m_ongoingStreams.end()) {
+    for (auto const& stream : streams->second) {
+      DisableStream(stream.cameraIndex, stream.endpoint);
+    }
+    m_ongoingStreams.erase(streams);
+  }
 }
