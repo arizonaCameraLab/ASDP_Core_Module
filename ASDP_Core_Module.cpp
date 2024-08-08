@@ -63,12 +63,15 @@ int main(int argc, char** argv)
   // Do this inside a block so that the module is destroyed when it goes out of scope.
   {
     if (verbosity > 0) {
-      std::cout << "Opening Core module listening on " << NICName << std::endl;
+      std::cout << "Initializing Core module (please wait)..." << std::endl;
     }
     Core_Module_Server server(NICName, 10102, 10101, 9000-28, verbosity);
     if (server.GetConstructorStatus() != OKAY) {
       std::cerr << "Failed to open module: " << ErrorMessage(server.GetConstructorStatus()) << std::endl;
       return 3;
+    }
+    if (verbosity > 0) {
+      std::cout << "Opened Core module listening on " << NICName << std::endl;
     }
     std::string ret = server.run();
     if (ret.size() > 0) {
