@@ -148,7 +148,7 @@ void Core_Module_Server::doEveryLoop()
         std::shared_ptr<StreamPacket> packet;
         client.m_writer->GetCurrentPacket(packet);
         Time timeCode = { pose.Seconds, pose.Microseconds };
-        MessagePose message(*packet, timeCode, pose.Longitude, pose.Latitude, pose.Altitude,
+        MessagePose message(*packet, timeCode, pose.Latitude, pose.Longitude, pose.Altitude,
           pose.Rotation, pose.Velocity, pose.RotationVelocity);
       }
     }
