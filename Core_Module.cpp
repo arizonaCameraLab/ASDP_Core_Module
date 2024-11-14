@@ -195,6 +195,40 @@ void Core_Module_Server::sendInternalErrorMessage(OpCode opCode, ClientState& cl
   }
 }
 
+void Core_Module_Server::sendInvalidOperationErrorMessage(OpCode opCode, ClientState& client)
+{
+  if (m_verbosity >= 1) {
+    std::cout << "Internal failure occurred" << std::endl;
+  }
+
+  std::shared_ptr<StreamWriter> writer = client.m_writer;
+  uint8_t priority = 0;
+  EventID type = INVALID_OPERATION;
+  if (client.m_eventVerbosity < priority) {
+    return;
+  }
+  std::shared_ptr<StreamPacket> packet;
+  Status status = writer->GetCurrentPacket(packet);
+  if (status != OKAY) {
+    m_error = "Error getting current packet from StreamWriter: " + ErrorMessage(status);
+    return;
+  }
+  Time timeCode;
+  m_timer->GetCoreTime(timeCode);
+  MessageEvent message(*packet, timeCode, priority, type, std::to_string(opCode));
+  if (message.GetConstructorStatus() != OKAY) {
+    m_error = "Error constructing MessageEvent: " + ErrorMessage(message.GetConstructorStatus());
+    return;
+  }
+
+  // Send the packet immediately.
+  status = writer->Flush();
+  if (status != OKAY) {
+    m_error = "Error flushing StreamWriter: " + ErrorMessage(status);
+    return;
+  }
+}
+
 void Core_Module_Server::doReset(const CommandPacketReset& command, ClientState& client)
 {
   // Reconfigure all of our triggers to be disabled.
@@ -223,8 +257,7 @@ void Core_Module_Server::doConfigureTrigger(const CommandPacketConfigureTrigger&
 
   // Configure the trigger.
   if (!(ConfigureTrigger(ti.ID, ti.mode, ti.externalID, ti.period, ti.trackingFactor))) {
-    sendInternalErrorMessage(CONFIGURE_TRIGGER, client);
-    m_error = "Error configuring trigger";
+    sendInvalidOperationErrorMessage(CONFIGURE_TRIGGER, client);
     return;
   }
 
@@ -251,8 +284,7 @@ void Core_Module_Server::doSoftwareTrigger(const CommandPacketSoftwareTrigger& c
 
   // Send the trigger
   if (!(SoftwareTrigger(triggerID, timeCode.seconds, timeCode.microseconds))) {
-    sendInternalErrorMessage(SOFTWARE_TRIGGER, client);
-    m_error = "Error sending software trigger";
+    sendInvalidOperationErrorMessage(SOFTWARE_TRIGGER, client);
     return;
   }
 

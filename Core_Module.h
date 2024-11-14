@@ -37,6 +37,7 @@ protected:
   //=============================================================================
   // Additional helper functions for the server module.
   void sendInternalErrorMessage(OpCode opCode, ClientState& client);
+  void sendInvalidOperationErrorMessage(OpCode opCode, ClientState& client);
 
   //=============================================================================
   // Override methods to implement the commands as needed.
