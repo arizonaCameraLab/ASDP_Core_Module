@@ -86,7 +86,6 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
     }
     if (camInfo.find("minTriggerPeriod") != camInfo.end()) {
       ci.minTriggerPeriod = std::stod(camInfo["minTriggerPeriod"]);
-      std::cout << "XXX minTriggerPeriod: " << ci.minTriggerPeriod << " from " << camInfo["minTriggerPeriod"] << std::endl;
     }
     if (camInfo.find("maxTriggerPeriod") != camInfo.end()) {
       ci.maxTriggerPeriod = std::stod(camInfo["maxTriggerPeriod"]);
