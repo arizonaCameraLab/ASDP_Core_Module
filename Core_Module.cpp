@@ -85,10 +85,11 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
       ci.height = atoi(camInfo["height"].c_str());
     }
     if (camInfo.find("minTriggerPeriod") != camInfo.end()) {
-      ci.minTriggerPeriod = atof(camInfo["minTriggerPeriod"].c_str());
+      ci.minTriggerPeriod = std::stod(camInfo["minTriggerPeriod"]);
+      std::cout << "XXX minTriggerPeriod: " << ci.minTriggerPeriod << " from " << camInfo["minTriggerPeriod"] << std::endl;
     }
     if (camInfo.find("maxTriggerPeriod") != camInfo.end()) {
-      ci.maxTriggerPeriod = atof(camInfo["maxTriggerPeriod"].c_str());
+      ci.maxTriggerPeriod = std::stod(camInfo["maxTriggerPeriod"]);
     }
     if (camInfo.find("nucFlagAvailable") != camInfo.end()) {
       haveNUCFlag = true;
