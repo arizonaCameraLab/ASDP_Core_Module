@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024: Arizona Board of Regents on Behalf of the University of Arizona
+ * Copyright (C) 2024-2025: Arizona Board of Regents on Behalf of the University of Arizona
  */
 
 // This is the Core Module implementation.
@@ -12,7 +12,7 @@
 
 using namespace asdp;
 
-static std::string VERSION = "1.1.0";
+static std::string VERSION = "1.1.1";
 
 void Usage(const char* programName, int code)
 {

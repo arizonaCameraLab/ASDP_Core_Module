@@ -219,11 +219,26 @@ int main(int argc, char** argv)
             std::cerr << "Error getting type from packet: " << ErrorMessage(status) << std::endl;
             return 8;
           }
-          if (rID == asdp::FRAME_BEGIN) {
-            numStartFrames++;
-          }
-          if (rID == asdp::FRAME_END) {
-            numEndFrames++;
+          if (rID == asdp::CONSOLIDATED_FRAME_DATA) {
+            asdp::MessageConsolidatedFrameData frameData(*message);
+            bool isBeginFrame;
+            status = frameData.GetBeginFrameFlag(isBeginFrame);
+            if (status != asdp::OKAY) {
+              std::cerr << "Error getting begin frame flag from packet: " << ErrorMessage(status) << std::endl;
+              return 8;
+            }
+            if (isBeginFrame) {
+              numStartFrames++;
+            }
+            bool isEndFrame;
+            status = frameData.GetEndFrameFlag(isEndFrame);
+            if (status != asdp::OKAY) {
+              std::cerr << "Error getting end frame flag from packet: " << ErrorMessage(status) << std::endl;
+              return 8;
+            }
+            if (isEndFrame) {
+              numEndFrames++;
+            }
           }
 
           end = std::chrono::steady_clock::now();
