@@ -20,6 +20,7 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
   : CoreServerBase(Bsp::GetSerialNumber(), NicName, sendPort, listenPort, maxPayloadSize, verbosity)
   , m_numCameras(Bsp::Camera::GetNumberOfCameras())
   , m_poseDeviceConfigurations(Bsp::Pose::GetPoseDeviceConfigurations())
+  , m_clockSynchronizer(std::make_shared<ClockSynchronizer>(m_timer))
 {
   // Fill in our state with the current values from the BSP.
   m_numTemperaturesPerCamera = GetNumberOfTemperatureSensorsPerCamera();
@@ -158,6 +159,16 @@ void Core_Module_Server::doEveryLoop()
   // We ignore any errors here; the parent class watches to see if a client dies.
   for (auto& client : m_clients) {
     client.m_writer->Flush();
+  }
+
+  // Provide an updated time code to the clock synchronizer if it is time to do so.
+  // We see if it has been at least 100ms since the last time we sent a time code.
+  auto now = std::chrono::steady_clock::now();
+  if (now - m_lastClockSync >= std::chrono::milliseconds(100)) {
+    m_lastClockSync = now;
+    Time timeCode;
+    Bsp::Timing::GetCurrentSystemTime(timeCode.seconds, timeCode.microseconds);
+    m_clockSynchronizer->AddDataPoint(timeCode);
   }
 }
 

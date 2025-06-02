@@ -4,9 +4,9 @@
 
 #pragma once
 #include <ASDP_Core_API.h>
+#include <ASDP_ClockSynchronizer.h>
 #include <BspInclude.hpp>
 #include <map>
-#include <mutex>
 #include <list>
 
 namespace asdp {
@@ -38,6 +38,11 @@ protected:
   // Additional helper functions for the server module.
   void sendInternalErrorMessage(OpCode opCode, ClientState& client);
   void sendInvalidOperationErrorMessage(OpCode opCode, ClientState& client);
+
+  //=============================================================================
+  // Clock synchronization.
+  std::shared_ptr<asdp::ClockSynchronizer> m_clockSynchronizer; ///< The clock synchronizer for the server.
+  std::chrono::steady_clock::time_point m_lastClockSync; ///< The last time the clock was synchronized.
 
   //=============================================================================
   // Override methods to implement the commands as needed.
