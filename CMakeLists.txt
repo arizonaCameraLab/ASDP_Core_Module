@@ -91,6 +91,18 @@ set (ASDP_Core_Module_SOURCES
 
 add_executable(ASDP_Core_Module ${ASDP_Core_Module_SOURCES} ${ASDP_Core_Module_HEADERS})
 target_link_libraries(ASDP_Core_Module Core_Module)
+get_property(isMultiConfig GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(isMultiConfig)
+  # Multi-config (e.g., Visual Studio, Xcode)
+  target_compile_definitions(ASDP_Core_Module PRIVATE BUILD_TYPE="$<CONFIG>")
+else()
+  # Single-config (e.g., Makefiles, Ninja)
+  if(CMAKE_BUILD_TYPE AND NOT CMAKE_BUILD_TYPE STREQUAL "")
+    target_compile_definitions(ASDP_Core_Module PRIVATE BUILD_TYPE="${CMAKE_BUILD_TYPE}")
+  else()
+    target_compile_definitions(ASDP_Core_Module PRIVATE BUILD_TYPE="Default")
+  endif()
+endif()
 
 include(GNUInstallDirs)
 install(TARGETS ASDP_Core_Module EXPORT ${PROJECT_NAME}
