@@ -162,12 +162,15 @@ void Core_Module_Server::doEveryLoop()
   }
 
   // Provide an updated time code to the clock synchronizer if it is time to do so.
-  // We see if it has been at least 100ms since the last time we sent a time code.
+  // We see if it has been at least 10ms since the last time we sent a time code.
   auto now = std::chrono::steady_clock::now();
-  if (now - m_lastClockSync >= std::chrono::milliseconds(100)) {
+  if (now - m_lastClockSync >= std::chrono::milliseconds(10)) {
     m_lastClockSync = now;
     Time timeCode;
     Bsp::Timing::GetCurrentSystemTime(timeCode.seconds, timeCode.microseconds);
+    // Clear all history because the clock can drift.  We always want to use the most recent time code
+    // to synchronize the clocks because the Timer does not have an adjustable rate of time flow.
+    m_clockSynchronizer->ClearHistory();
     m_clockSynchronizer->AddDataPoint(timeCode);
   }
 }
