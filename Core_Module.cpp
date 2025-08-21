@@ -323,6 +323,26 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
     return;
   }
 
+  // See if we already have a stream going to this endpoint for this camera.  If so, first cancel it.
+  // The API calls for replacing its parameters, which we do here by the two steps of disabling and enabling.
+  Bsp::UdpInserter::endpoint_s endpointS = { endpoint.IP, endpoint.port };
+  auto streams = m_ongoingStreams.find(&client);
+  if (streams != m_ongoingStreams.end()) {
+    auto existingStream = std::find_if(streams->second.begin(), streams->second.end(),
+      [subregion, &endpointS](const OngoingStreamInfo& info) {
+        return (info.cameraIndex == subregion.cameraID) && (endpointS == info.endpoint);
+      });
+    if (existingStream != streams->second.end()) {
+      // We have an existing stream to this endpoint for this camera.  Cancel it first.
+      if (!DisableStream(subregion.cameraID, { endpoint.IP, endpoint.port })) {
+        sendInternalErrorMessage(STREAM_SUBREGION, client);
+        m_error = "Error disabling existing subregion stream";
+        return;
+      }
+      streams->second.erase(existingStream);
+    }
+  }
+
   // Request the streaming
   roi_s roi;
   roi.start_x = subregion.left;
