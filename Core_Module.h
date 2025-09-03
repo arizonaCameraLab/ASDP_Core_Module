@@ -58,6 +58,16 @@ protected:
   /// @brief Implement the specified command.
   /// @param command The command packet to implement.
   /// @param client The client that the command is coming from.
+  void doSetNUCFlagState(const CommandPacketSetNUCFlagState& command, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
+  void doStartOnCameraNUC(const CommandPacketStartOnCameraNUC& command, ClientState& client) override;
+
+  /// @brief Implement the specified command.
+  /// @param command The command packet to implement.
+  /// @param client The client that the command is coming from.
   void doConfigureTrigger(const CommandPacketConfigureTrigger&, ClientState& client) override;
 
   /// @brief Implement the specified command.

@@ -15,6 +15,13 @@ using namespace Bsp::Pose;
 using namespace Bsp::Camera;
 using namespace Bsp::UdpInserter;
 
+static std::string to_lower(const std::string& input) {
+  std::string result = input;
+  std::transform(result.begin(), result.end(), result.begin(),
+    [](unsigned char c) { return std::tolower(c); });
+  return result;
+}
+
 Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t sendPort, uint16_t listenPort,
   uint32_t maxPayloadSize, int verbosity)
   : CoreServerBase(Bsp::GetSerialNumber(), NicName, sendPort, listenPort, maxPayloadSize, verbosity)
@@ -92,10 +99,16 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
       ci.maxTriggerPeriod = std::stod(camInfo["maxTriggerPeriod"]);
     }
     if (camInfo.find("nucFlagAvailable") != camInfo.end()) {
-      haveNUCFlag = true;
+      std::string lowerValue = to_lower(camInfo["nucFlagAvailable"]);
+      if ((lowerValue == "true") || (lowerValue == "t") || (lowerValue == "1")) {
+        haveNUCFlag = true;
+      }
     }
     if (camInfo.find("onCameraNUCAvailable") != camInfo.end()) {
-      haveOnCameraNUC = true;
+      std::string lowerValue = to_lower(camInfo["onCameraNUCAvailable"]);
+      if ((lowerValue == "true") || (lowerValue == "t") || (lowerValue == "1")) {
+        haveOnCameraNUC = true;
+      }
     }
 
     m_cameras.push_back(ci);
@@ -276,6 +289,43 @@ void Core_Module_Server::doConfigureTrigger(const CommandPacketConfigureTrigger&
   }
 
   m_error = "";
+}
+
+void Core_Module_Server::doSetNUCFlagState(const CommandPacketSetNUCFlagState& command, ClientState& client)
+{
+  uint32_t cameraID;
+  Status status = command.GetID(cameraID);
+  if (status != OKAY) {
+    sendInternalErrorMessage(SET_NUC_FLAG_STATE, client);
+    m_error = "Error getting camera ID: " + ErrorMessage(status);
+    return;
+  }
+  uint32_t flipped;
+  status = command.GetState(flipped);
+  if (status != OKAY) {
+    sendInternalErrorMessage(SET_NUC_FLAG_STATE, client);
+    m_error = "Error getting flag state: " + ErrorMessage(status);
+    return;
+  }
+  if (!(SetNUCFlagState(cameraID, flipped != 0))) {
+    sendInvalidOperationErrorMessage(SET_NUC_FLAG_STATE, client);
+    return;
+  }
+}
+
+void Core_Module_Server::doStartOnCameraNUC(const CommandPacketStartOnCameraNUC& command, ClientState& client)
+{
+  uint32_t cameraID;
+  Status status = command.GetID(cameraID);
+  if (status != OKAY) {
+    sendInternalErrorMessage(START_ON_CAMERA_NUC, client);
+    m_error = "Error getting camera ID: " + ErrorMessage(status);
+    return;
+  }
+  if (!(StartOnCameraNUC(cameraID))) {
+    sendInvalidOperationErrorMessage(START_ON_CAMERA_NUC, client);
+    return;
+  }
 }
 
 void Core_Module_Server::doSoftwareTrigger(const CommandPacketSoftwareTrigger& command, ClientState& client)
