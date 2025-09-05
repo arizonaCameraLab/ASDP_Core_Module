@@ -8,6 +8,7 @@
 #include <BspInclude.hpp>
 #include <map>
 #include <list>
+#include <mutex>
 
 namespace asdp {
 
@@ -48,6 +49,12 @@ protected:
   // Callbacks from the BSP library.
   static void NUCFlagStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds, void* UserData);
   static void OnCameraNUCStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds, void* UserData);
+
+  //=============================================================================
+  // Mutex to protect writing to the clients. Some of the writing is done in the callbacks
+  // from the BSP library, which are in a different thread than the main loop.
+  /// @todo This could become a map from ClientState* to mutex, to allow more concurrency.
+  std::mutex m_writerMutex; ///< Mutex to protect writing to the clients.
 
   //=============================================================================
   // Override methods to implement the commands as needed.

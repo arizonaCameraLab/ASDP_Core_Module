@@ -147,6 +147,7 @@ void Core_Module_Server::doEveryLoop()
   for (auto const& temp: temps) {
     for (auto& client : m_clients) {
       if (client.m_streamingTemperatures) {
+        std::lock_guard<std::mutex> lock(m_writerMutex);
         std::shared_ptr<StreamPacket> packet;
         client.m_writer->GetCurrentPacket(packet);
         Time timeCode = { temp.Seconds, temp.Microseconds };
@@ -165,6 +166,7 @@ void Core_Module_Server::doEveryLoop()
   for (auto const& pose: poses) {
     for (auto& client : m_clients) {
       if (client.m_streamingPoses) {
+        std::lock_guard<std::mutex> lock(m_writerMutex);
         std::shared_ptr<StreamPacket> packet;
         client.m_writer->GetCurrentPacket(packet);
         Time timeCode = { pose.Seconds, pose.Microseconds };
@@ -177,6 +179,7 @@ void Core_Module_Server::doEveryLoop()
   // Flush the writers for all clients in case we have new data for them.
   // We ignore any errors here; the parent class watches to see if a client dies.
   for (auto& client : m_clients) {
+    std::lock_guard<std::mutex> lock(m_writerMutex);
     client.m_writer->Flush();
   }
 
@@ -200,6 +203,7 @@ void Core_Module_Server::sendInternalErrorMessage(OpCode opCode, ClientState& cl
     std::cout << "Internal failure occurred"<< std::endl;
   }
 
+  std::lock_guard<std::mutex> lock(m_writerMutex);
   std::shared_ptr<StreamWriter> writer = client.m_writer;
   uint8_t priority = 0;
   EventID type = INTERNAL_ERROR;
@@ -234,6 +238,7 @@ void Core_Module_Server::sendInvalidOperationErrorMessage(OpCode opCode, ClientS
     std::cout << "Internal failure occurred" << std::endl;
   }
 
+  std::lock_guard<std::mutex> lock(m_writerMutex);
   std::shared_ptr<StreamWriter> writer = client.m_writer;
   uint8_t priority = 0;
   EventID type = INVALID_OPERATION;
@@ -476,6 +481,7 @@ void Core_Module_Server::NUCFlagStateCallback(uint16_t Index, bool State, uint32
   }
   // Send the NUC flag state to all clients.
   for (auto& client : me->m_clients) {
+    std::lock_guard<std::mutex> lock(me->m_writerMutex);
     std::shared_ptr<StreamPacket> packet;
     Status status = client.m_writer->GetCurrentPacket(packet);
     if (status != OKAY) {
@@ -507,6 +513,7 @@ void Core_Module_Server::OnCameraNUCStateCallback(uint16_t Index, bool State, ui
   }
   // Send the NUC flag state to all clients.
   for (auto& client : me->m_clients) {
+    std::lock_guard<std::mutex> lock(me->m_writerMutex);
     std::shared_ptr<StreamPacket> packet;
     Status status = client.m_writer->GetCurrentPacket(packet);
     if (status != OKAY) {
