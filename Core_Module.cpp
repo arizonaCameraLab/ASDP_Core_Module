@@ -102,12 +102,18 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
       std::string lowerValue = to_lower(camInfo["nucFlagAvailable"]);
       if ((lowerValue == "true") || (lowerValue == "t") || (lowerValue == "1")) {
         haveNUCFlag = true;
+        if (!RegisterNUCFlagStateCallback(NUCFlagStateCallback, this)) {
+          m_error = "Error registering NUC flag state callback";
+        }
       }
     }
     if (camInfo.find("onCameraNUCAvailable") != camInfo.end()) {
       std::string lowerValue = to_lower(camInfo["onCameraNUCAvailable"]);
       if ((lowerValue == "true") || (lowerValue == "t") || (lowerValue == "1")) {
         haveOnCameraNUC = true;
+        if (!RegisterOnCameraNUCStateCallback(OnCameraNUCStateCallback, this)) {
+          m_error = "Error registering on-camera NUC state callback";
+        }
       }
     }
 
@@ -458,5 +464,67 @@ void Core_Module_Server::clientBeingRemoved(ClientState& client)
       DisableStream(stream.cameraIndex, stream.endpoint);
     }
     m_ongoingStreams.erase(streams);
+  }
+}
+
+void Core_Module_Server::NUCFlagStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds,
+  void* UserData)
+{
+  Core_Module_Server* me = static_cast<Core_Module_Server*>(UserData);
+  if (me == nullptr) {
+    return;
+  }
+  // Send the NUC flag state to all clients.
+  for (auto& client : me->m_clients) {
+    std::shared_ptr<StreamPacket> packet;
+    Status status = client.m_writer->GetCurrentPacket(packet);
+    if (status != OKAY) {
+      me->m_error = "Error getting current packet from StreamWriter: " + ErrorMessage(status);
+      return;
+    }
+    Time timeCode = { Seconds, Microseconds };
+    int priority = 1;
+    std::string params = std::to_string(Index) + "," + (State ? "1" : "0");
+    MessageEvent message(*packet, timeCode, priority, NUC_FLAG_STATE, params.c_str());
+    if (message.GetConstructorStatus() != OKAY) {
+      me->m_error = "Error constructing MessageEvent: " + ErrorMessage(message.GetConstructorStatus());
+      return;
+    }
+    status = client.m_writer->Flush();
+    if (status != OKAY) {
+      me->m_error = "Error flushing StreamWriter: " + ErrorMessage(status);
+      return;
+    }
+  }
+}
+
+void Core_Module_Server::OnCameraNUCStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds,
+  void* UserData)
+{
+  Core_Module_Server* me = static_cast<Core_Module_Server*>(UserData);
+  if (me == nullptr) {
+    return;
+  }
+  // Send the NUC flag state to all clients.
+  for (auto& client : me->m_clients) {
+    std::shared_ptr<StreamPacket> packet;
+    Status status = client.m_writer->GetCurrentPacket(packet);
+    if (status != OKAY) {
+      me->m_error = "Error getting current packet from StreamWriter: " + ErrorMessage(status);
+      return;
+    }
+    Time timeCode = { Seconds, Microseconds };
+    int priority = 1;
+    std::string params = std::to_string(Index) + "," + (State ? "1" : "0");
+    MessageEvent message(*packet, timeCode, priority, ON_CAMERA_NUC_STATE, params.c_str());
+    if (message.GetConstructorStatus() != OKAY) {
+      me->m_error = "Error constructing MessageEvent: " + ErrorMessage(message.GetConstructorStatus());
+      return;
+    }
+    status = client.m_writer->Flush();
+    if (status != OKAY) {
+      me->m_error = "Error flushing StreamWriter: " + ErrorMessage(status);
+      return;
+    }
   }
 }

@@ -45,6 +45,11 @@ protected:
   std::chrono::steady_clock::time_point m_lastClockSync; ///< The last time the clock was synchronized.
 
   //=============================================================================
+  // Callbacks from the BSP library.
+  static void NUCFlagStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds, void* UserData);
+  static void OnCameraNUCStateCallback(uint16_t Index, bool State, uint32_t Seconds, uint32_t Microseconds, void* UserData);
+
+  //=============================================================================
   // Override methods to implement the commands as needed.
 
   /// @brief Handle operations that must be done every loop, like checking if our thread should stop.
