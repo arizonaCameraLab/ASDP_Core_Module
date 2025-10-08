@@ -153,20 +153,22 @@ void Core_Module_Server::doEveryLoop()
         Time timeCode = { temp.Seconds, temp.Microseconds };
         uint16_t cameraID = temp.CameraIndex;
         uint16_t sensorID = temp.SensorIndex;
-        float temperatureCelcius = temp.Temperature;
-        MessageTemperature message(*packet, timeCode, cameraID, sensorID, temperatureCelcius);
+        float temperatureCelsius = temp.Temperature;
+        MessageTemperature message(*packet, timeCode, cameraID, sensorID, temperatureCelsius);
         // If we've had an error constructing the message, try flushing the writer to see if that helps.
         // We may be trying to put too much data in the packet.
-        if (message.GetConstructorStatus() != OKAY) {
+        Status ret = message.GetConstructorStatus();
+        while (ret == WRITE_PAST_END) {
           client.m_writer->Flush();
           client.m_writer->GetCurrentPacket(packet);
-          MessageTemperature message2(*packet, timeCode, cameraID, sensorID, temperatureCelcius);
-          if (message2.GetConstructorStatus() != OKAY) {
-            // If we still have an error, just give up on this one.
-            if (m_verbosity >= 1) {
-              std::cout << "Error constructing MessageTemperature after flush: "
-                << ErrorMessage(message2.GetConstructorStatus()) << std::endl;
-            }
+          MessageTemperature message(*packet, timeCode, cameraID, sensorID, temperatureCelsius);
+          ret = message.GetConstructorStatus();
+        }
+        if (ret != OKAY) {
+          // If we still have an error, just give up on this one.
+          if (m_verbosity >= 1) {
+            std::cout << "Error constructing MessageTemperature after flush: " << ErrorMessage(ret) << std::endl;
+            continue;
           }
         }
       }
@@ -188,17 +190,19 @@ void Core_Module_Server::doEveryLoop()
           pose.Rotation, pose.Velocity, pose.RotationVelocity);
         // If we've had an error constructing the message, try flushing the writer to see if that helps.
         // We may be trying to put too much data in the packet.
-        if (message.GetConstructorStatus() != OKAY) {
+        Status ret = message.GetConstructorStatus();
+        while (ret == WRITE_PAST_END) {
           client.m_writer->Flush();
           client.m_writer->GetCurrentPacket(packet);
-          MessagePose message2(*packet, timeCode, pose.Latitude, pose.Longitude, pose.Altitude,
+          MessagePose message(*packet, timeCode, pose.Latitude, pose.Longitude, pose.Altitude,
             pose.Rotation, pose.Velocity, pose.RotationVelocity);
-          if (message2.GetConstructorStatus() != OKAY) {
-            // If we still have an error, just give up on this one.
-            if (m_verbosity >= 1) {
-              std::cout << "Error constructing MessagePose after flush: "
-                << ErrorMessage(message2.GetConstructorStatus()) << std::endl;
-            }
+          ret = message.GetConstructorStatus();
+        }
+        if (ret != OKAY) {
+          // If we still have an error, just give up on this one.
+          if (m_verbosity >= 1) {
+            std::cout << "Error constructing MessagePose after flush: " << ErrorMessage(ret) << std::endl;
+            continue;
           }
         }
       }
