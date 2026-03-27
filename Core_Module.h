@@ -106,7 +106,9 @@ protected:
     uint16_t cameraIndex;
     Bsp::UdpInserter::endpoint_s endpoint;
   };
-  std::map< ClientState *, std::list<OngoingStreamInfo> > m_ongoingStreams; ///< The streams that are currently ongoing.
+  /// The streams that are currenly ongoing.  We look them up by the raw pointer to the ClientInfo
+  /// rather than the ClientState because these get moved around the the m_clients vector.
+  std::map< ClientInfo*, std::list<OngoingStreamInfo> > m_ongoingStreams;
 
   /// @todo Override the other methods as needed.
 };

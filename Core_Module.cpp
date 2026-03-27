@@ -420,7 +420,7 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
   // See if we already have a stream going to this endpoint for this camera.  If so, first cancel it.
   // The API calls for replacing its parameters, which we do here by the two steps of disabling and enabling.
   Bsp::UdpInserter::endpoint_s endpointS = { endpoint.IP, endpoint.port };
-  auto streams = m_ongoingStreams.find(&client);
+  auto streams = m_ongoingStreams.find(client.m_client.get());
   if (streams != m_ongoingStreams.end()) {
     auto existingStream = std::find_if(streams->second.begin(), streams->second.end(),
       [subregion, &endpointS](const OngoingStreamInfo& info) {
@@ -454,7 +454,7 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
   OngoingStreamInfo streamInfo;
   streamInfo.cameraIndex = subregion.cameraID;
   streamInfo.endpoint = { endpoint.IP, endpoint.port };
-  m_ongoingStreams[&client].push_back(streamInfo);
+  m_ongoingStreams[client.m_client.get()].push_back(streamInfo);
 
   m_error = "";
 }
@@ -486,7 +486,7 @@ void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& c
 
   // Remove this from the ongoing-streams list
   Bsp::UdpInserter::endpoint_s endpointS = { endpoint.IP, endpoint.port };
-  m_ongoingStreams[&client].remove_if([cameraID, endpoint, &endpointS](const OngoingStreamInfo& info) {
+  m_ongoingStreams[client.m_client.get()].remove_if([cameraID, endpoint, &endpointS](const OngoingStreamInfo& info) {
     return (info.cameraIndex == cameraID) && (endpointS == info.endpoint);
   });
 
@@ -496,7 +496,7 @@ void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& c
 void Core_Module_Server::clientBeingRemoved(ClientState& client)
 {
   // Remove any ongoing streams that this client was responsible for
-  auto streams = m_ongoingStreams.find(&client);
+  auto streams = m_ongoingStreams.find(client.m_client.get());
   if (streams != m_ongoingStreams.end()) {
     for (auto const& stream : streams->second) {
       DisableStream(stream.cameraIndex, stream.endpoint);
