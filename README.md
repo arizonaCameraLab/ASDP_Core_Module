@@ -66,6 +66,12 @@ a location specified in the load-library path.
 
 ## Running
 
-
 The *ASDP_Core_Module* program runs the server and it must be given a command-line argument specifying
 the network name or IP address of the network interface card to use (for example, *localhost* for testing).
+
+So that the program can find the require shared library, you need to specify that the installation
+library directory is in the library load path. This can be done in user configuration files or on the
+command line when running: `LD_LIBRARY_PATH=/usr/local/lib ASDP_Core_Module localhost --verbosity 2`
+for example.
+
+
