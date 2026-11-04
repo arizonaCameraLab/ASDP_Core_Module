@@ -311,8 +311,6 @@ void Core_Module_Server::doReset(const CommandPacketReset& command, ClientState&
   while (!m_clients.empty()) {
     m_clients.pop_back();
   }
-
-  m_error = "";
 }
 
 void Core_Module_Server::doConfigureTrigger(const CommandPacketConfigureTrigger& command, ClientState& client)
@@ -331,8 +329,6 @@ void Core_Module_Server::doConfigureTrigger(const CommandPacketConfigureTrigger&
     sendInvalidOperationErrorMessage(CONFIGURE_TRIGGER, client);
     return;
   }
-
-  m_error = "";
 }
 
 void Core_Module_Server::doSetNUCFlagState(const CommandPacketSetNUCFlagState& command, ClientState& client)
@@ -395,8 +391,6 @@ void Core_Module_Server::doSoftwareTrigger(const CommandPacketSoftwareTrigger& c
     sendInvalidOperationErrorMessage(SOFTWARE_TRIGGER, client);
     return;
   }
-
-  m_error = "";
 }
 
 void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& command, ClientState& client)
@@ -455,8 +449,6 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
   streamInfo.cameraIndex = subregion.cameraID;
   streamInfo.endpoint = { endpoint.IP, endpoint.port };
   m_ongoingStreams[client.m_client.get()].push_back(streamInfo);
-
-  m_error = "";
 }
 
 void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& command, ClientState& client)
@@ -489,8 +481,6 @@ void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& c
   m_ongoingStreams[client.m_client.get()].remove_if([cameraID, endpoint, &endpointS](const OngoingStreamInfo& info) {
     return (info.cameraIndex == cameraID) && (endpointS == info.endpoint);
   });
-
-  m_error = "";
 }
 
 void Core_Module_Server::clientBeingRemoved(ClientState& client)
