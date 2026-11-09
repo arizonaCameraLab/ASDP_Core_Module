@@ -28,11 +28,15 @@ public:
   /// @brief Get the current status of the object.
   Status GetCurrentStatus() const;
 
+  /// @brief Get the mapping from API camera ID to BSP camera ID.
+  /// @return A map from API camera ID to BSP camera ID.
+  std::map<uint16_t, uint16_t> GetAPItoBSPMapping() const { return m_API_IDtoBSP_ID; }
 
 protected:
   //=============================================================================
   // Additional state information for the server module.
-  uint16_t m_numCameras; ///< The number of cameras that are connected to the server.
+  std::map<uint16_t, uint16_t> m_API_IDtoBSP_ID; ///< Map from API camera ID to BSP ID.
+  std::map<uint16_t, uint16_t> m_BSP_IDtoAPI_ID; ///< Map from BSP camera ID to API ID.
   std::vector<Bsp::Pose::pose_report_s> m_poseDeviceConfigurations; ///< The configurations for the pose devices.
 
   //=============================================================================

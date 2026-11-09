@@ -25,7 +25,6 @@ static std::string to_lower(const std::string& input) {
 Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t sendPort, uint16_t listenPort,
   uint32_t maxPayloadSize, int verbosity)
   : CoreServerBase(Bsp::GetSerialNumber(), NicName, sendPort, listenPort, maxPayloadSize, verbosity)
-  , m_numCameras(Bsp::Camera::GetNumberOfCameras())
   , m_poseDeviceConfigurations(Bsp::Pose::GetPoseDeviceConfigurations())
   , m_clockSynchronizer(std::make_shared<ClockSynchronizer>(m_timer))
 {
@@ -71,12 +70,7 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
   /// @todo Enable config-file-based setting of the camera trigger configuration.
   bool haveNUCFlag = false;
   bool haveOnCameraNUC = false;
-  for (size_t c = 1; c <= m_numCameras; c++) {
-    // Configure the camera for trigger 1
-    if (!SetupCamera(c, 1)) {
-      m_error = "Error setting up camera " + std::to_string(c) + " for trigger 1";
-      continue;
-    }
+  for (uint16_t c = 1; c <= Bsp::Camera::GetNumberOfCameras(); c++) {
 
     // Get the rest of the camera information
     // Store the camera information.
@@ -85,6 +79,10 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
     std::map<std::string, std::string> camInfo = GetStatus(c);
     if (camInfo.find("type") != camInfo.end()) {
       ci.type = atoi(camInfo["type"].c_str());
+      if (ci.type == 0) {
+        // Ignore cameras that are not present. This is a valid state for a camera in the BSP.
+        continue;
+      }
     }
     if (camInfo.find("width") != camInfo.end()) {
       ci.width = atoi(camInfo["width"].c_str());
@@ -117,7 +115,18 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
       }
     }
 
+    // Configure the camera for trigger 1
+    if (!SetupCamera(c, 1)) {
+      m_error = "Error setting up camera " + std::to_string(c) + " for trigger 1";
+      continue;
+    }
+
+    // We have a complete and ready camera, so add it to our list of cameras.
     m_cameras.push_back(ci);
+
+    // Add the camera to both of our mappings between API ID and BSP ID.
+    m_API_IDtoBSP_ID[m_cameras.size()] = c;
+    m_BSP_IDtoAPI_ID[c] = m_cameras.size();
   }
 
   // Add features discovered during the camera handling.
@@ -127,7 +136,6 @@ Core_Module_Server::Core_Module_Server(const std::string& NicName, uint16_t send
   if (haveOnCameraNUC) {
     m_features.push_back(ON_CAMERA_NUC_AVAILABLE);
   }
-
 }
 
 Status Core_Module_Server::GetCurrentStatus() const
@@ -151,7 +159,7 @@ void Core_Module_Server::doEveryLoop()
         std::shared_ptr<StreamPacket> packet;
         client.m_writer->GetCurrentPacket(packet);
         Time timeCode = { temp.Seconds, temp.Microseconds };
-        uint16_t cameraID = temp.CameraIndex;
+        uint16_t cameraID = m_BSP_IDtoAPI_ID[temp.CameraIndex];
         uint16_t sensorID = temp.SensorIndex;
         float temperatureCelsius = temp.Temperature;
         MessageTemperature message(*packet, timeCode, cameraID, sensorID, temperatureCelsius);
@@ -268,7 +276,7 @@ void Core_Module_Server::sendInternalErrorMessage(OpCode opCode, ClientState& cl
 void Core_Module_Server::sendInvalidOperationErrorMessage(OpCode opCode, ClientState& client)
 {
   if (m_verbosity >= 1) {
-    std::cout << "Internal failure occurred" << std::endl;
+    std::cout << "Invalid operation occurred" << std::endl;
   }
 
   std::lock_guard<std::mutex> lock(m_writerMutex);
@@ -340,6 +348,7 @@ void Core_Module_Server::doSetNUCFlagState(const CommandPacketSetNUCFlagState& c
     m_error = "Error getting camera ID: " + ErrorMessage(status);
     return;
   }
+  uint16_t bspID = m_API_IDtoBSP_ID[cameraID];
   uint32_t flipped;
   status = command.GetState(flipped);
   if (status != OKAY) {
@@ -347,7 +356,7 @@ void Core_Module_Server::doSetNUCFlagState(const CommandPacketSetNUCFlagState& c
     m_error = "Error getting flag state: " + ErrorMessage(status);
     return;
   }
-  if (!(SetNUCFlagState(cameraID, flipped != 0))) {
+  if (!(SetNUCFlagState(bspID, flipped != 0))) {
     sendInvalidOperationErrorMessage(SET_NUC_FLAG_STATE, client);
     return;
   }
@@ -362,7 +371,8 @@ void Core_Module_Server::doStartOnCameraNUC(const CommandPacketStartOnCameraNUC&
     m_error = "Error getting camera ID: " + ErrorMessage(status);
     return;
   }
-  if (!(StartOnCameraNUC(cameraID))) {
+  uint16_t bspID = m_API_IDtoBSP_ID[cameraID];
+  if (!(StartOnCameraNUC(bspID))) {
     sendInvalidOperationErrorMessage(START_ON_CAMERA_NUC, client);
     return;
   }
@@ -400,16 +410,15 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
   Status status = command.GetEndpoint(endpoint);
   if (status != OKAY) {
     sendInternalErrorMessage(STREAM_SUBREGION, client);
-    m_error = "Error getting endpoint: " + ErrorMessage(status);
     return;
   }
   SubregionDescription subregion;
   status = command.GetRegionDescription(subregion);
   if (status != OKAY) {
     sendInternalErrorMessage(STREAM_SUBREGION, client);
-    m_error = "Error getting subregion: " + ErrorMessage(status);
     return;
   }
+  uint16_t bspID = m_API_IDtoBSP_ID[subregion.cameraID];
 
   // See if we already have a stream going to this endpoint for this camera.  If so, first cancel it.
   // The API calls for replacing its parameters, which we do here by the two steps of disabling and enabling.
@@ -422,9 +431,8 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
       });
     if (existingStream != streams->second.end()) {
       // We have an existing stream to this endpoint for this camera.  Cancel it first.
-      if (!DisableStream(subregion.cameraID, { endpoint.IP, endpoint.port })) {
-        sendInternalErrorMessage(STREAM_SUBREGION, client);
-        m_error = "Error disabling existing subregion stream";
+      if (!DisableStream(bspID, { endpoint.IP, endpoint.port })) {
+        sendInvalidOperationErrorMessage(STREAM_SUBREGION, client);
         return;
       }
       streams->second.erase(existingStream);
@@ -437,10 +445,9 @@ void Core_Module_Server::doStreamSubregion(const CommandPacketStreamSubregion& c
   roi.start_y = subregion.top;
   roi.end_x = subregion.right;
   roi.end_y = subregion.bottom;
-  if (!EnableStream(subregion.cameraID, { endpoint.IP, endpoint.port }, roi, subregion.skipFrames,
+  if (!EnableStream(bspID, { endpoint.IP, endpoint.port }, roi, subregion.skipFrames,
       subregion.startTimeSeconds, subregion.startTimeMicroseconds)) {
-    sendInternalErrorMessage(STREAM_SUBREGION, client);
-    m_error = "Error enabling subregion stream";
+    sendInvalidOperationErrorMessage(STREAM_SUBREGION, client);
     return;
   }
 
@@ -458,21 +465,19 @@ void Core_Module_Server::doCancelSubregion(const CommandPacketCancelSubregion& c
   Status status = command.GetCamera(cameraID);
   if (status != OKAY) {
     sendInternalErrorMessage(CANCEL_SUBREGION, client);
-    m_error = "Error getting cameraID: " + ErrorMessage(status);
     return;
   }
   StreamEndpoint endpoint;
   status = command.GetEndpoint(endpoint);
   if (status != OKAY) {
     sendInternalErrorMessage(CANCEL_SUBREGION, client);
-    m_error = "Error getting endpoint: " + ErrorMessage(status);
     return;
   }
+  uint16_t bspID = m_API_IDtoBSP_ID[cameraID];
 
   // Request the cancelation of the streaming
-  if (!DisableStream(cameraID, { endpoint.IP, endpoint.port })) {
-    sendInternalErrorMessage(CANCEL_SUBREGION, client);
-    m_error = "Error disabling subregion stream";
+  if (!DisableStream(bspID, { endpoint.IP, endpoint.port })) {
+    sendInvalidOperationErrorMessage(CANCEL_SUBREGION, client);
     return;
   }
 

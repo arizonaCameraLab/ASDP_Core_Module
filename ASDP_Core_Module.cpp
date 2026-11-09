@@ -12,7 +12,7 @@
 
 using namespace asdp;
 
-static std::string VERSION = "1.8.1";
+static std::string VERSION = "1.9.0";
 
 void Usage(const char* programName, int code)
 {
@@ -70,6 +70,19 @@ int main(int argc, char** argv)
     if (server.GetConstructorStatus() != OKAY) {
       std::cerr << "Failed to open module: " << ErrorMessage(server.GetConstructorStatus()) << std::endl;
       return 3;
+    }
+    if (verbosity > 0) {
+      auto mapping = server.GetAPItoBSPMapping();
+      bool foundException = false;
+      for (auto const& pair : mapping) {
+        if (pair.first != pair.second) {
+          if (!foundException) {
+            std::cout << " API to BSP camera ID mapping exceptions:" << std::endl;
+            foundException = true;
+          }
+          std::cout << "  API ID " << pair.first << " -> BSP ID " << pair.second << std::endl;
+        }
+      }
     }
     if (verbosity > 0) {
       std::cout << "Opened Core module listening on " << NICName << std::endl;
